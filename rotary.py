@@ -1,16 +1,17 @@
 #!/usr/bin/python3
 import gpiozero		#gpio module
-import math, sys, os, time
+import time
+import threading
 import subprocess
-import socket
+from gpiozero import Device
 
 pin_rotaryenable =  5
 pin_countrotary = 6
 pin_hook = 21
 
-rotaryenable = gpiozero.Button(pin_rotaryenable, pull_up=False)
-countrotary = gpiozero.Button(pin_countrotary, pull_up=False)
-hook = gpiozero.Button(pin_hook, pull_up=False)
+rotaryenable = gpiozero.Button(pin_rotaryenable, pull_up=False, bounce_time=0.01)
+countrotary = gpiozero.Button(pin_countrotary, pull_up=False, bounce_time=0.004)
+hook = gpiozero.Button(pin_hook, pull_up=False, bounce_time=0.02)
 
 baseDir = "/home/licia/Marrabbio/marrabbio"
 
@@ -24,6 +25,7 @@ class Dial():
 		self.counting = False
 		self.calling = False
 		self.player = None
+		self.lock = threading.Lock()
 		
 	def readSongsList(self):
 		print("Reading songs list...")
@@ -48,18 +50,18 @@ class Dial():
 			if song['number'] == number:
 				print("Song %s found: %s" % (song['number'], song['file']))
 				self.reset()
-				self.player = subprocess.Popen(["mpg123", "-q", song['file']], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+				self.player = subprocess.Popen(["mpg123", "-q", song['file']], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 				found = True
 				break
 		
 		if not found:
-			self.player = subprocess.Popen(["mpg123", "-q", baseDir + "/eggs/Utaimashou.mp3"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			self.player = subprocess.Popen(["mpg123", "-q", baseDir + "/eggs/Utaimashou.mp3"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 	def startcalling(self):
 		print("Start calling")
 		self.reset()
 		self.calling = True
-		self.player = subprocess.Popen(["mpg123", "--loop", "20", "-q", "/home/licia/Marrabbio/dial.mp3"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		self.player = subprocess.Popen(["mpg123", "--loop", "20", "-q", "/home/licia/Marrabbio/dial.mp3"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 	def stopcalling(self):
 		print("Stop calling")
@@ -68,42 +70,50 @@ class Dial():
 
 	def startcounting(self):
 		print ("Start counting")
-		self.counting = self.calling
+		with self.lock:
+			self.counting = self.calling
+			self.pulses = 0
 
 	def stopcounting(self):
 		print("Stop counting")
-		if self.calling:
-			print ("Got %s pulses.." % self.pulses)
-			short_num=None
-			if self.pulses > 0:
-				if math.floor(self.pulses / 2) == 10:
-					self.number += "0"
-					short_num = "0"
-				else:
-					short_num = str(math.floor(self.pulses/2))
-					self.number += short_num
-			print("Than %s is dialed!" % self.number)
+		with self.lock:
+			calling = self.calling
+			pulses = self.pulses
 			self.pulses = 0
+			self.counting = False
 
-			if(short_num is not None):
-				if(self.player):
-					self.player.kill()
-				
-				self.player = subprocess.Popen(["mpg123", "-q", "/home/licia/Marrabbio/marrabbio/%s.mp3" % short_num], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-				time.sleep(0.25)
+		if not calling:
+			return
 
-				if len(self.number) == 3:
-					time.sleep(0.75)
-					self.matchSongs(self.number)
+		print("Got %s pulses.." % pulses)
+		short_num = None
+		if pulses == 10:
+			short_num = "0"
+		elif 1 <= pulses <= 9:
+			short_num = str(pulses)
+		elif pulses > 0:
+			print("Unexpected pulses count: %s" % pulses)
 
+		if short_num is None:
+			return
 
-		self.counting = False
+		self.number += short_num
+		print("Than %s is dialed!" % self.number)
+
+		if self.player:
+			self.player.kill()
+
+		self.player = subprocess.Popen(["mpg123", "-q", "/home/licia/Marrabbio/marrabbio/%s.mp3" % short_num], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+		if len(self.number) == 3:
+			number = self.number
+			threading.Timer(0.75, self.matchSongs, args=(number,)).start()
 
 	def addpulse(self):
-		print("Add pulse")
-		if self.counting:
-			self.pulses += 1
-			print("freal addpulse %s" % self.pulses)
+		with self.lock:
+			if self.counting:
+				self.pulses += 1
+				print("Pulse %s" % self.pulses)
 
 	def getnumber(self):
 		return self.number
@@ -123,9 +133,9 @@ class Dial():
 
 
 if __name__ == "__main__":
+	print("gpiozero pin factory: %s" % Device.pin_factory)
 	dial = Dial()
 	dial.readSongsList()
-	countrotary.when_deactivated = dial.addpulse
 	countrotary.when_activated = dial.addpulse
 	rotaryenable.when_activated = dial.startcounting
 	rotaryenable.when_deactivated = dial.stopcounting

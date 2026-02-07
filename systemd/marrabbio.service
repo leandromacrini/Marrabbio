@@ -1,0 +1,18 @@
+[Unit]
+Description=Marrabbio Rotary Telephone Player
+After=multi-user.target sound.target
+
+[Service]
+Type=simple
+User=licia
+Group=licia
+WorkingDirectory=/home/licia/Marrabbio
+Environment=PYTHONUNBUFFERED=1
+# Optional: force a specific gpiozero backend, e.g. lgpio/rpigpio/pigpio
+# Environment=GPIOZERO_PIN_FACTORY=lgpio
+ExecStart=/usr/bin/python3 /home/licia/Marrabbio/rotary.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
