@@ -1,0 +1,25 @@
+[pins]
+rotary_enable = 5
+rotary_pulse = 6
+hook = 21
+
+[debounce]
+rotary_enable = 0.01
+rotary_pulse = 0.004
+hook = 0.02
+
+[timing]
+play_song_delay_sec = 0.75
+dial_tone_loop_count = 20
+expected_digits = 3
+
+[logging]
+level = "INFO"
+
+[web]
+host = "0.0.0.0"
+port = 9999
+refresh_seconds = 2
+
+[runtime]
+gpio_enabled = true

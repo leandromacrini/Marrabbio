@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marrabbio Stats</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="memphis-bg" aria-hidden="true">
+    <span class="shape circle mint"></span>
+    <span class="shape circle pink"></span>
+    <span class="shape triangle yellow"></span>
+    <span class="shape square blue"></span>
+    <span class="shape zigzag"></span>
+  </div>
+
+  <main class="container">
+    <header class="hero">
+      <p class="badge">マラビオの電話帳 - Marrabbio no Denwachō</p>
+      <h1>ANIME EXPERIENCE</h1>
+      <p class="subtitle">Statistiche in tempo reale e storico utilizzo</p>
+    </header>
+
+    <section class="stats-grid" aria-label="Statistiche live">
+      <article class="card card-main">
+        <h2>Data di avvio sessione</h2>
+        <p id="session-day" class="big">-</p>
+        <p id="session-id" class="meta">-</p>
+      </article>
+      <article class="card">
+        <h2>Canzoni avviate</h2>
+        <p id="songs-started" class="big">0</p>
+      </article>
+      <article class="card">
+        <h2>Errori</h2>
+        <p id="errors" class="big">0</p>
+      </article>
+      <article class="card">
+        <h2>Fallback</h2>
+        <p id="fallbacks" class="big">0</p>
+      </article>
+    </section>
+
+    <section class="top-grid" aria-label="Top canzoni">
+      <article class="card">
+        <h2>Le canzoni più avviate oggi</h2>
+        <ol id="top-day" class="top-list"></ol>
+      </article>
+      <article class="card">
+        <h2>Le canzoni più avviate di sempre</h2>
+        <ol id="top-all" class="top-list"></ol>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Calendario Giorni Attivi</h2>
+        <div class="month-nav">
+          <button id="month-prev" type="button" class="month-btn" aria-label="Mese precedente">◀</button>
+          <span id="month-label" class="month-label">-</span>
+          <button id="month-next" type="button" class="month-btn" aria-label="Mese successivo">▶</button>
+        </div>
+      </div>
+      <p class="panel-note">Click su una data per vedere il dettaglio</p>
+      <div id="calendar-grid" class="calendar-grid"></div>
+    </section>
+  </main>
+
+  <dialog id="day-modal" class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Dettaglio giorno</h3>
+      <button id="modal-close" class="modal-close" type="button">Chiudi</button>
+    </div>
+    <div class="modal-content">
+      <div class="modal-metrics">
+        <div class="mini-card"><span>Sessioni</span><strong id="m-sessions">0</strong></div>
+        <div class="mini-card"><span>Canzoni</span><strong id="m-songs">0</strong></div>
+        <div class="mini-card"><span>Errori</span><strong id="m-errors">0</strong></div>
+        <div class="mini-card"><span>Fallback</span><strong id="m-fallbacks">0</strong></div>
+      </div>
+      <h4>Top canzoni del giorno</h4>
+      <ol id="m-top-day" class="top-list"></ol>
+      <h4>File sessione</h4>
+      <ul id="m-files" class="file-list"></ul>
+      <h4>Raw summary</h4>
+      <pre id="m-raw"></pre>
+    </div>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

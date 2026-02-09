@@ -1,0 +1,16 @@
+[Unit]
+Description=Marrabbio Rotary Telephone Player
+After=multi-user.target sound.target
+
+[Service]
+Type=simple
+User=licia
+Group=licia
+WorkingDirectory=/home/licia/marrabbio
+ExecStart=/usr/bin/python3 /home/licia/marrabbio/marrabbio.py
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
