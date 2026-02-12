@@ -12,7 +12,7 @@ TimeoutStartSec=35
 # Wait up to 20s for NTP sync, then continue anyway.
 ExecStartPre=/bin/sh -c 'command -v timedatectl >/dev/null 2>&1 || exit 0; i=0; while [ $i -lt 20 ]; do [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null)" = "yes" ] && exit 0; i=$((i+1)); sleep 1; done; exit 0'
 # Try to update sources from git (max 20s), then continue anyway.
-ExecStartPre=/bin/sh -c 'timeout 20s /home/licia/marrabbio/scripts/update_from_git.sh || true'
+ExecStartPre=/bin/sh -c 'timeout 20s bash /home/licia/marrabbio/scripts/update_from_git.sh || true'
 ExecStart=/usr/bin/python3 /home/licia/marrabbio/marrabbio.py
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 Restart=always
