@@ -64,28 +64,3 @@ Then run:
 python3 marrabbio.py
 ```
 
-## Wi-Fi fallback
-
-Use 2 known Wi-Fi profiles with different priorities.
-
-Manual:
-
-```bash
-nmcli connection modify "ASSOCIAZIONE_WIFI" connection.autoconnect yes connection.autoconnect-priority 100
-nmcli connection modify "HOTSPOT_CELL" connection.autoconnect yes connection.autoconnect-priority 10
-sudo systemctl restart NetworkManager
-```
-
-Helper script:
-
-```bash
-cd /home/licia/marrabbio
-bash scripts/set_wifi_priority.sh "ASSOCIAZIONE_WIFI" "HOTSPOT_CELL"
-```
-
-Install shortcut:
-
-```bash
-WIFI_PRIMARY="ASSOCIAZIONE_WIFI" WIFI_FALLBACK="HOTSPOT_CELL" bash scripts/install.sh
-```
-
