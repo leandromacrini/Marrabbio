@@ -37,8 +37,9 @@ def run() -> int:
     _setup_logging(config.logging.level)
 
     songs_list_file = project_root / SONGS_LIST_FILE
-    songs_dir = project_root / MEDIA_DIR / SONGS_DIR
-    sounds_dir = project_root / MEDIA_DIR / SOUNDS_DIR
+    media_dir = project_root / MEDIA_DIR
+    songs_dir = media_dir / SONGS_DIR
+    sounds_dir = media_dir / SOUNDS_DIR
     stats_dir = project_root / STATS_DIR
     dial_tone_file = sounds_dir / DIAL_TONE_FILE
     fallback_song_file = sounds_dir / FALLBACK_SONG_FILE
@@ -53,6 +54,7 @@ def run() -> int:
         songs_by_code=songs,
         fallback_song_file=fallback_song_file,
         digit_audio_dir=sounds_dir,
+        media_dir=media_dir,
         dial_tone_file=dial_tone_file,
         timing=config.timing,
         stats=stats,

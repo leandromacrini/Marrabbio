@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 import logging
+import socket
+import subprocess
 import threading
 from pathlib import Path
 
@@ -25,12 +27,19 @@ class DialContext:
 
 
 class DialController:
+    SPECIAL_PREFIX = "000"
+    SPECIAL_CODE_LENGTH = 5
+    CODE_IP = "00001"
+    CODE_REBOOT = "00008"
+    CODE_SHUTDOWN = "00009"
+
     def __init__(
         self,
         player: AudioPlayer,
         songs_by_code: dict[str, Path],
         fallback_song_file: Path,
         digit_audio_dir: Path,
+        media_dir: Path,
         dial_tone_file: Path,
         timing: Timing,
         stats: StatsRecorder,
@@ -39,6 +48,7 @@ class DialController:
         self._songs = songs_by_code
         self._fallback_song_file = fallback_song_file
         self._digit_audio_dir = digit_audio_dir
+        self._media_dir = media_dir
         self._dial_tone_file = dial_tone_file
         self._timing = timing
         self._stats = stats
@@ -106,7 +116,7 @@ class DialController:
             self._ctx.typed_number += digit
             number = self._ctx.typed_number
             logging.info("Dialed so far: %s", number)
-            completed = len(number) == self._timing.expected_digits
+            completed = self._is_code_complete(number)
             if completed:
                 self._state = DialState.PLAYING
 
@@ -130,6 +140,16 @@ class DialController:
             self._state = DialState.PLAYING
             self._ctx = DialContext()
 
+        if code == self.CODE_IP:
+            self._play_ip_address()
+            return
+        if code == self.CODE_REBOOT:
+            self._play_and_system_action("Ributto.mp3", ["systemctl", "reboot"], "reboot")
+            return
+        if code == self.CODE_SHUTDOWN:
+            self._play_and_system_action("Shattodaun.mp3", ["systemctl", "poweroff"], "shutdown")
+            return
+
         song_file = self._songs.get(code, self._fallback_song_file)
         if song_file == self._fallback_song_file:
             logging.warning("Song code not found: %s, using fallback", code)
@@ -148,3 +168,70 @@ class DialController:
         if 1 <= pulses <= 9:
             return str(pulses)
         return None
+
+    def _is_code_complete(self, number: str) -> bool:
+        if number == self.SPECIAL_PREFIX:
+            return False
+        if number.startswith(self.SPECIAL_PREFIX):
+            return len(number) == self.SPECIAL_CODE_LENGTH
+        return len(number) == self._timing.expected_digits
+
+    def _play_ip_address(self) -> None:
+        intro = self._media_dir / "IPaddresso.mp3"
+        point = self._media_dir / "Pointo.mp3"
+        sequence = [intro]
+        ip = self._resolve_local_ip()
+        octets = ip.split(".")
+
+        for i, octet in enumerate(octets):
+            for ch in octet:
+                sequence.append(self._digit_audio_dir / f"{ch}.mp3")
+            if i < len(octets) - 1:
+                sequence.append(point)
+
+        self._player.play_sequence_blocking(sequence)
+        logging.info("Announced IP address: %s", ip)
+
+    def _play_and_system_action(self, audio_name: str, command: list[str], action_name: str) -> None:
+        self._player.play_file_blocking(self._media_dir / audio_name)
+        logging.info("Running system action: %s", action_name)
+        if self._run_system_command(command):
+            return
+        self._stats.record_error("system_action_failed", f"{action_name}:{' '.join(command)}")
+        logging.error("System action failed: %s", action_name)
+        with self._lock:
+            if self._state == DialState.PLAYING:
+                self._state = DialState.OFF_HOOK
+
+    def _run_system_command(self, command: list[str]) -> bool:
+        attempts = [
+            command,
+            ["sudo", "-n", *command],
+        ]
+        for cmd in attempts:
+            try:
+                completed = subprocess.run(
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+                if completed.returncode == 0:
+                    return True
+            except OSError:
+                continue
+        return False
+
+    @staticmethod
+    def _resolve_local_ip() -> str:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            sock.connect(("8.8.8.8", 80))
+            ip = sock.getsockname()[0]
+            if ip and ip != "0.0.0.0":
+                return ip
+        except OSError:
+            pass
+        finally:
+            sock.close()
+        return "0.0.0.0"

@@ -26,6 +26,21 @@ class AudioPlayer:
         logging.info("Playing: %s", audio_file.name)
         self._spawn(command)
 
+    def play_file_blocking(self, audio_file: Path) -> None:
+        if not audio_file.exists():
+            logging.error("Audio file not found: %s", audio_file)
+            return
+        self.stop()
+        subprocess.run(["mpg123", "-q", str(audio_file)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
+    def play_sequence_blocking(self, files: Sequence[Path]) -> None:
+        self.stop()
+        for audio_file in files:
+            if not audio_file.exists():
+                logging.error("Audio file not found: %s", audio_file)
+                continue
+            subprocess.run(["mpg123", "-q", str(audio_file)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
     def stop(self) -> None:
         if self._process is None:
             return
@@ -35,4 +50,3 @@ class AudioPlayer:
             pass
         finally:
             self._process = None
-
